@@ -38,6 +38,7 @@ imdataMask = 0x1FFFE0
 class TestMe:
 
     # def __init__(self):
+    @property
     def run(self):
         global opcodeStr
         global arg1
@@ -65,10 +66,12 @@ class TestMe:
             with open(inputFile, "r") as f:
                 for line in f:
                     instructions.append(line)
+                    # opcode.append(line[0:11])
 
         #Converting the Binary to a spaced string (From Greg) "R" for Instruction Formatting.
         def bin2StringSpaced_R(s):
             spacedStr = s[0:11] + " " + s[11:16] + " " + s[16:22] + " " + s[22:27] + " " + s[27:32]
+            opcodeStr = s[0:11]
             return spacedStr
 
         def bin2StringSpaced_D(s):
@@ -81,6 +84,7 @@ class TestMe:
 
         def bin2StringSpaced_B(s):
             spacedStr = s[0:6] + " " + s[6:32]
+            opcodeStr = s[0:6]
             return spacedStr
 
         def bin2StringSpaced_CB(s):
@@ -94,10 +98,17 @@ class TestMe:
         get_instructions(inputFile)
         outputFile = open(outputFile + "_dis.txt", 'w')
 
-        for i in range(len(instructions)):
-            instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+        line = instructions[0:1]
+        print  line
+        opcode = line[0:11]
+        print opcode[0:11]
+
+        for i in range(len(opcode)):
+            # instrSpaced.append(bin2StringSpaced_R(instructions[i]))
             opcode.append(int(instructions[i][0:11], base=2))
             if int(opcode[i]) == 1112:
+                instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                print "add"
                 opcodeStr.append(" ADD")
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
                 arg2.append((int(instructions[i], base=2) & rmMask) >> 16)
@@ -106,6 +117,7 @@ class TestMe:
                 argStr2.append("\tR" + str(arg1[i]))
                 argStr3.append("\tR" + str(arg2[i]))
             elif int(opcode[i]) == 1624:
+                instrSpaced.append(bin2StringSpaced_I(instructions[i]))
                 opcodeStr.append("SUB")
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
                 arg2.append((int(instructions[i], base=2) & rmMask) >> 16)
@@ -114,7 +126,9 @@ class TestMe:
                 argStr2.append("\tR" + str(arg1[i]))
                 argStr3.append("\tR" + str(arg2[i]))
             elif int(opcode[i]) == 1160:
+                instrSpaced.append(bin2StringSpaced_I(instructions[i]))
                 opcodeStr.append("ADDI")
+
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 4)
                 arg2.append((int(instructions[i], base=2) & rmMask) >> 12)
                 arg3.append((int(instructions[i], base=2) & rdMask) >> 0)
@@ -235,7 +249,7 @@ class TestMe:
                 argStr3.append("\tR" + str(arg2[i]))
 
             else: #Anything that is not ADD or SUB
-                opcodeStr.append("")
+                opcodeStr.append(" ")
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
                 arg2.append((int(instructions[i], base=2) & rmMask) >> 16)
                 arg3.append((int(instructions[i], base=2) & rdMask) >> 0)
@@ -243,9 +257,13 @@ class TestMe:
                 argStr2.append("\tR" + str(arg1[i]))
                 argStr3.append("\tR" + str(arg2[i]))
 
+
+            
+
+
             #Write the formatting to the File.
             outputFile.write(instrSpaced[i] + "    " + str(Memory) + "   " + opcodeStr[i] + argStr1[i] + ", " +
-                             argStr2[i] + ", " + argStr3[i] + "\n")
+                argStr2[i] + ", " + argStr3[i] + "\n")
             Memory += 4
 
         return
@@ -253,7 +271,7 @@ class TestMe:
 
 if __name__ == '__main__':
     test = TestMe()
-    test.run()
+    test.run
 
 
 

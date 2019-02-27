@@ -232,7 +232,7 @@ class TestMe:
             elif int(opcode[i]) == 1684:
                 opcodeStr.append("MOVZ")
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
-                arg2.append((int(instructions[i], base=2) & rmMask) >> 16)
+                arg2.append((int(instructions[i], base=2) & rmMask) >> 21)
                 arg3.append((int(instructions[i], base=2) & rdMask) >> 0)
                 argStr1.append("\tR" + str(arg3[i]))
                 argStr2.append("\tR" + str(arg1[i]))
@@ -241,7 +241,7 @@ class TestMe:
             elif int(opcode[i]) == 1940:
                 opcodeStr.append("MOVK")
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
-                arg2.append((int(instructions[i], base=2) & rmMask) >> 16)
+                arg2.append((int(instructions[i], base=2) & rmMask) >> 21)
                 arg3.append((int(instructions[i], base=2) & rdMask) >> 0)
                 argStr1.append("\tR" + str(arg3[i]))
                 argStr2.append("\tR" + str(arg1[i]))

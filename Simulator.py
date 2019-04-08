@@ -23,17 +23,8 @@ class Simulator:
 
         i = 0
         r_32 = [0] * 32
-
-        dict_range = 0
-        range_list = []
-
-        while dict_range < 1000:
-            range_list.append(dict_range)
-            dict_range += 32
-
-        data_dict = {x: 0 for x in dict_range}
-
-        data_list = []
+        data_list = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
 
         while disassembler.opcodeStr[i] != 'BREAK':
             if disassembler.opcodeStr[i] == "ADDI":
@@ -228,8 +219,6 @@ class Simulator:
             elif disassembler.opcodeStr[i] == "STUR":
                 store = disassembler.arg3[i]
                 addr = disassembler.arg1[i] + disassembler.arg2[i] * 4
-                data_dict[addr] = store
-
                 outputFile.write("====================" + "\n" + "cycle " + str(i + 1) + "\t" + str(Memory)
                                  + "\t" + "STUR" + "\t" + str(disassembler.argStr1[i]) + "\t" + str(
                     disassembler.argStr2[i])
@@ -246,7 +235,26 @@ class Simulator:
                     "r24: " + str(r_32[24]) + "\t" + str(r_32[25]) + "\t" + str(r_32[26]) + "\t" + str(
                         r_32[27]) + "\t" +
                     str(r_32[28]) + "\t" + str(r_32[29]) + "\t" + str(r_32[30]) + "\t" + str(r_32[31]) + "\t" + "\n")
+
                 outputFile.write("\n" + "data:" + "\n")
+                data_start = disassembler.Memory + 4
+                data_rows = [data_start, data_start + 32, data_start + 64, data_start + 96]
+
+                while addr > data_rows[-1]:
+                    data_rows.append(data_rows[-1] + 32)
+                    data_list.append([0, 0, 0, 0, 0, 0, 0, 0])
+
+                for i in range(len(data_rows)):
+                    if addr > data_rows[i]:
+                        continue
+                    elif addr < data_rows[i]:
+                        row_index = i - 1
+                        data_index = (addr - data_rows[row_index]) / 4
+                        data_list[row_index][data_index] = store
+
+                for row, data in data_rows, data_list:
+                    outputFile.write(str(row) + ": " + str(data))
+
             elif disassembler.opcodeStr[i] == "LDUR":
                 outputFile.write("====================" + "\n" + "cycle " + str(i + 1) + "\t" + str(Memory)
                                  + "\t" + "LDUR" + "\t" + str(disassembler.argStr1[i]) + "\t" + str(

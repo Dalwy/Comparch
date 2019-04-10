@@ -1,11 +1,10 @@
 """Names:
-Dalton Melville
-Diego Santana
+Taylor Robbins
+Mirna Elizondo
 """
 import sys
-import os
 
-""" Lists """
+# lists to be accessed
 opcodeStr = []
 instrSpaced = []
 arg1 = []
@@ -16,13 +15,12 @@ argStr2 = []
 argStr3 = []
 binMem = []
 opcode = []
-opcodeStr = []
 mem = []
 instructions = []
 Memory = 96
 counter = 0
 
-""" Masks """
+# masks
 specialMask = 0x1FFFF
 rnMask = 0x3E0
 rmMask = 0x1F0000
@@ -37,7 +35,7 @@ signMask = 0x800
 flipBits = 0xFFF
 
 
-class TestMe:
+class Disassembler:
 
     def __init__(self):
         pass
@@ -71,25 +69,21 @@ class TestMe:
         instructions = [line.rstrip() for line in open(inputFile, 'rb')]
         outputFile = open(outputFile + "_dis.txt", 'w')
 
-        def imm_to_32(imm):
-            if imm.bit_length() == 12:
-                neg_mask = 0x800
-                extend_mask = 0xFFFFF000
-                if imm & neg_mask == 1:
-                    return imm | extend_mask
-                else:
-                    return imm | 0x00000000
-
         # Twos Complitment for flipping the bits and adding 1.
-        def twos_compliment(val):
-
-            if (val & signMask) >> 11 == 1:
-                val = val ^ flipBits
-                val += 1
-                #val -= 2 ** 12
-
-            return val
-
+        def twos_compliment(imm):
+            if imm.bit_length() == 26:
+                sign_mask = 0x2000000
+                if imm & sign_mask >> 25 == 1:
+                    imm = imm ^ 0x3FFFFFF
+                    imm += 1
+                    imm *= -1
+            elif imm.bit_length() == 19:
+                sign_mask = 0x40000
+                if imm & sign_mask >> 18 == 1:
+                    imm = imm ^ 0x7FFFF
+                    imm += 1
+                    imm *= -1
+            return imm
 
         # Converting the Binary to a spaced string (From Greg) "R" for Instruction Formatting.
         def bin2StringSpaced(s):
@@ -136,6 +130,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("R" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + " "
                     + argStr1[i] + ", " + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1624:
@@ -147,6 +142,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("R" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + " " + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) >= 1160 and opcode[i] <= 1161:
@@ -154,10 +150,12 @@ class TestMe:
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
                 arg2.append((int(instructions[i], base=2) & imMask) >> 10)
                 arg3.append((int(instructions[i], base=2) & rdMask) >> 0)
+                print('Arg2 bit length: ' + str(arg2[i].bit_length()))
                 argStr1.append("R" + str(arg3[i]))
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("#" + str(twos_compliment(arg2[i])))
                 #argStr3.append("#" + str((arg2[i])))
+                mem.append(Memory)
                 instrSpaced.append(bin2StringSpaced_I(instructions[i]))
                 outputFile.write(instrSpaced[i] + " \t" + str(Memory) + "  \t" + opcodeStr[i] + "\t" + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
@@ -170,6 +168,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("#" + str(twos_compliment(arg2[i])))
                 instrSpaced.append(bin2StringSpaced_I(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + " \t" + str(Memory) + "  \t" + opcodeStr[i] + "\t" + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1691:
@@ -181,6 +180,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("#" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + " " + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1690:
@@ -192,6 +192,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("#" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + " " + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1692:
@@ -203,6 +204,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("#" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + " " + argStr1[i] + ", "
                                  + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1104:
@@ -214,6 +216,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("R" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + " " + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1360:
@@ -225,6 +228,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("R" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + " " + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1872:
@@ -236,6 +240,7 @@ class TestMe:
                 argStr2.append("R" + str(arg1[i]))
                 argStr3.append("R" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_R(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + " " + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1986:
@@ -247,6 +252,7 @@ class TestMe:
                 argStr2.append("[R" + str(arg1[i]))
                 argStr3.append("#" + str(arg2[i]) + "]")
                 instrSpaced.append(bin2StringSpaced_D(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + "\t" + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) == 1984:
@@ -258,28 +264,33 @@ class TestMe:
                 argStr2.append("[R" + str(arg1[i]))
                 argStr3.append("#" + str(arg2[i]) + "]")
                 instrSpaced.append(bin2StringSpaced_D(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + "\t" + argStr1[i] + ", "
                     + argStr2[i] + ", " + argStr3[i] + "\n")
             elif int(opcode[i]) >= 1440 and opcode[i] <= 1447:
                 opcodeStr.append("CBZ")
-                arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
-                arg2.append(twos_compliment(int(instructions[i], base=2) & imMask) >> 10)
+                arg1.append((int(instructions[i], base=2) & 0x00FFFFE0) >> 5)
+                arg2.append(int(instructions[i], base=2))
                 arg3.append((int(instructions[i], base=2) & rdMask) >> 0)
+                arg1[i] = twos_compliment(arg1[i])
                 argStr1.append("\tR" + str(arg3[i]))
-                argStr2.append("#" + str(arg1[i]))
+                argStr2.append("#" + str(twos_compliment(arg1[i])))
                 argStr3.append("")
                 instrSpaced.append(bin2StringSpaced_CB(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "  \t" + str(Memory) + "  \t" + opcodeStr[i] + " " + argStr1[i] +
                     ", " + argStr2[i] + "\n")
             elif int(opcode[i]) >= 1448 and opcode[i] <= 1455:
                 opcodeStr.append("CBNZ")
-                arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
+                arg1.append((int(instructions[i], base=2) & 0x00FFFFE0) >> 5)
                 arg2.append(twos_compliment(int(instructions[i], base=2) & imMask) >> 10)
                 arg3.append((int(instructions[i], base=2) & rdMask) >> 0)
+                arg1[i] = twos_compliment(arg1[i])
                 argStr1.append("\tR" + str(arg3[i]))
-                argStr2.append("#" + str(arg1[i]))
+                argStr2.append("#" + str(twos_compliment(arg1[i])))
                 argStr3.append("")
                 instrSpaced.append(bin2StringSpaced_CB(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "  \t" + str(Memory) + "  \t" + opcodeStr[i] + argStr1[i] + ", "
                     + argStr2[i] + "\n")
             elif int(opcode[i]) >= 1684 and opcode[i] <= 1687:
@@ -291,6 +302,7 @@ class TestMe:
                 argStr2.append("" + "LSL " + str(arg1[i]))
                 argStr3.append("" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_IM(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "  \t" + str(Memory) + "  \t" + opcodeStr[i] + argStr1[i] + ", " +
                     argStr3[i] + ", " + argStr2[i] + "\n")
             elif int(opcode[i]) >= 1940 and opcode[i] <= 1943:
@@ -302,17 +314,20 @@ class TestMe:
                 argStr2.append("" + "LSL " + str(arg1[i]))
                 argStr3.append("" + str(arg2[i]))
                 instrSpaced.append(bin2StringSpaced_IM(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "  \t" + str(Memory) + "  \t" + opcodeStr[i] + argStr1[i] + ", " +
                     argStr3[i] + " " + argStr2[i] + "\n")
             elif int(opcode[i]) >= 160 and opcode[i] <= 191:
                 opcodeStr.append("B")
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
                 arg2.append(twos_compliment(int(instructions[i], base=2) & imMask) >> 10)
-                arg3.append((int(instructions[i], base=2) & 0x3FFFFFC) >> 0)
-                argStr1.append("\t#" + str(twos_compliment(arg3[i])))
+                arg3.append((int(instructions[i], base=2) & 0x3FFFFFF))
+                arg3[i] = twos_compliment(arg3[i])
+                argStr1.append("\t#" + str(arg3[i]))
                 argStr2.append("")
                 argStr3.append("")
                 instrSpaced.append(bin2StringSpaced_B(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "   \t" + str(Memory) + "  \t" + opcodeStr[i] + "   " + argStr1[i]
                     + "\n")
             elif int(opcode[i]) == 2038:
@@ -324,11 +339,13 @@ class TestMe:
                 argStr2.append(" ")
                 argStr3.append(" ")
                 instrSpaced.append(bin2StringSpaced_break(instructions[i]))
+                mem.append(Memory)
                 outputFile.write(instrSpaced[i] + "\t" + str(Memory) + "  \t" + opcodeStr[i] + "" + "\n")
             elif int(opcode[i]) == 0:
                 opcodeStr.append("NOP")
                 instrSpaced.append(bin2StringSpaced(instructions[i]))
                 outputFile.write(instrSpaced[i] + "    \t" + str(Memory) + "  \t" + opcodeStr[i] + "\n")
+                mem.append(Memory)
             else:  # Anything that is not an instruction
                 opcodeStr.append("-")
                 arg1.append((int(instructions[i], base=2) & rnMask) >> 5)
@@ -343,6 +360,6 @@ class TestMe:
 
 
 if __name__ == '__main__':
-    test = TestMe()
+    test = Disassembler()
     test.run()
 

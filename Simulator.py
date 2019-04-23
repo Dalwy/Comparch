@@ -318,7 +318,7 @@ class Simulator:
                 outputFile.write("\n" + "data:" + "\n")
                 for row, data in zip(data_rows, data_D):
                     outputFile.write(str(row) + ": " + str(data) + "\n")
-                if r_32[disassembler2.arg3[i]] == 0:
+                if r_32[disassembler2.arg3[i]] != 0:
                     offset = disassembler2.arg1[i]
                     i += offset - 1
             elif disassembler2.opcodeStr[i] == "ASR":

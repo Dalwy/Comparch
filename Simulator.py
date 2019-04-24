@@ -200,11 +200,12 @@ class Simulator:
                 for row, data in zip(data_rows, data_D):
                     outputFile.write(str(row) + ": " + str(data) + "\n")
             elif disassembler2.opcodeStr[i] == "MOVK":
-                temp = 1
+                p_num = 1
                 if disassembler2.arg1[i] != 0:
                     k_num = disassembler2.arg1[i]
                     p_num = (pow(2,k_num))
-                r_32[disassembler2.arg3[i]] = p_num * disassembler2.arg2[i]
+                temp_num = p_num * disassembler2.arg2[i]
+                r_32[disassembler2.arg3[i]] = temp_num + r_32[disassembler2.arg3[i]]
                 outputFile.write("====================" + "\n" + "cycle " + str(cycle_counter + 1) + "\t" + str(disassembler2.mem[i])
                                  + "\t" + "MOVK" + "\t" + str(disassembler2.argStr1[i]) + "\t" + str(disassembler2.argStr3[i])
                                  + "\t" + str(disassembler2.argStr2[i]) + "\n")
@@ -364,7 +365,7 @@ class Simulator:
             elif disassembler2.opcodeStr[i] == "LSR":
                 num1 = disassembler2.arg2[i]
                 num2 = (pow(2, num1))
-                r_32[disassembler2.arg3[i]] = disassembler2.arg1[i] / num2
+                r_32[disassembler2.arg3[i]] = r_32[disassembler2.arg1[i]] / num2
                 outputFile.write("====================" + "\n" + "cycle " + str(cycle_counter + 1) + "\t" + str(disassembler2.mem[i])
                                  + "\t" + "LSR" + "\t" + str(disassembler2.argStr1[i]) + "\t" + str(disassembler2.argStr2[i])
                                  + "\t" + str(disassembler2.argStr3[i]) + "\n")

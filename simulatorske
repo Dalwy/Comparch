@@ -1,0 +1,520 @@
+import disassembler
+import sys
+
+
+class Simulator:
+
+    def __init__(self):
+        pass
+
+    def run(self):
+        global outputFile
+        global Memory
+        Memory = 96
+
+        for i in range(len(sys.argv)):
+            if (sys.argv[i] == '-i' and i < (len(sys.argv) - 1)):
+                inputFile = sys.argv[i + i]
+            elif (sys.argv[i] == '-o' and i < (len(sys.argv) - 1)):
+                outputFile = sys.argv[i + 1]
+
+        outputFile = open(outputFile + "_sim.txt", 'w')
+        d = disassembler.Disassemble()
+        d.run()
+
+
+        i = 0
+        cycle = 1
+        cycle_counter = 0
+        cacheSets = [[[0,0,0,0,0], [0,0,0,0,0]], #set 0
+                     [[0,0,0,0,0], [0,0,0,0,0]], #set 1
+                     [[0,0,0,0,0], [0,0,0,0,0]], #set 2
+                     [[0,0,0,0,0], [0,0,0,0,0]]] #set 3
+        lruBit= [0,0,0,0]
+        tagMask = 4294967264
+        setMask = 24
+        justMissedList = []
+        dataish = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
+        data_start = disassembler.Memory
+        data_rows = [data_start, data_start + 32, data_start + 64, data_start + 96]
+        r_32 = [0] * 32
+
+        def write_regs():
+            outputFile.write(
+                "r00: " + str(r_32[0]) + "\t" + str(r_32[1]) + "\t" + str(r_32[2]) + "\t" + str(r_32[3]) + "\t" +
+                str(r_32[4]) + "\t" + str(r_32[5]) + "\t" + str(r_32[6]) + "\t" + str(r_32[7]) + "\t" + "\n" +
+                "r08: " + str(r_32[8]) + "\t" + str(r_32[9]) + "\t" + str(r_32[10]) + "\t" + str(r_32[11]) + "\t" +
+                str(r_32[12]) + "\t" + str(r_32[13]) + "\t" + str(r_32[14]) + "\t" + str(r_32[15]) + "\t" + "\n" +
+                "r16: " + str(r_32[16]) + "\t" + str(r_32[17]) + "\t" + str(r_32[18]) + "\t" + str(r_32[19]) + "\t" +
+                str(r_32[20]) + "\t" + str(r_32[21]) + "\t" + str(r_32[22]) + "\t" + str(r_32[23]) + "\t" + "\n" +
+                "r24: " + str(r_32[24]) + "\t" + str(r_32[25]) + "\t" + str(r_32[26]) + "\t" + str(r_32[27]) + "\t" +
+                str(r_32[28]) + "\t" + str(r_32[29]) + "\t" + str(r_32[30]) + "\t" + str(r_32[31]) + "\t" + "\n")
+        while True:
+            if disassembler.opcodeStr[i] == "ADDI":
+                num = disassembler.arg1[i]
+                r_32[int(disassembler.arg3[i])] = r_32[num] + int(disassembler.arg2[i])
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                        "Pre-Issue Buffer:" + "\n\t\t" + "Entry 0:" + "\t" + "instruction" + "\n\t\t" + "Entry 1:" +
+                                  "\t" + "instruction" + "\n\t\t" + "Entry 2:" + "\t" + "instruction" + "\n\t\t" +
+                                  "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t\t" + "Entry 0:" + "\t" + "instruction" + "\n\t\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t\t" + "Entry 0:" + "\t" + "instruction" + "\n\t\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("\n" + "Registers:" + "\n")
+                write_regs()
+                outputFile.write("\n" + "Cache" + "\n" +"Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "Data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+                offset = disassembler.arg3[i]
+                i += offset - 1
+                if i < 0 : break
+                elif i > len((disassembler.opcodeStr)): break
+                outputFile.write("\n")
+            elif disassembler.opcodeStr[i] == "B":
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                        "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                  "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                  "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write("Cache" + "\n" +"Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+                offset = disassembler.arg3[i]
+                i += offset - 1
+                if i < 0: break
+                elif i > len((disassembler.opcodeStr)): break
+
+            elif disassembler.opcodeStr[i] == "ADD":
+                num = disassembler.arg1[i]
+                num2 = disassembler.arg2[i]
+                r_32[disassembler.arg3[i]] = r_32[num] + r_32[num2]
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                        "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                  "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                  "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write("Cache" + "\n" +"Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+
+            elif disassembler.opcodeStr[i] == "SUB":
+                num = disassembler.arg1[i]
+                num2 = disassembler.arg2[i]
+                r_32[disassembler.arg3[i]] = r_32[num] - r_32[num2]
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                        "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                  "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                  "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write("Cache" + "\n" +"Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                                 "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "SUBI":
+                num = disassembler.arg1[i]
+                r_32[int(disassembler.arg3[i])] = r_32[num] - int(disassembler.arg2[i])
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for data_list in data:
+                    for addi in data_list:
+                        if addi != 0:
+                            for row, address in zip(data_rows, data):
+                                outputFile.write(str(row) + ': ')
+                                for add in address:
+                                    outputFile.write(str(add) + '\t')
+                                outputFile.write('\n')
+                        else:
+                            continue
+            elif disassembler.opcodeStr[i] == "AND":
+                r_32[disassembler.arg3[i]] = disassembler.arg1[i] & disassembler.arg2[i]
+                print(r_32[disassembler.arg3[i]])
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+
+            elif disassembler.opcodeStr[i] == "ORR":
+                r_32[disassembler.arg3[i]] = r_32[disassembler.arg2[i]] | r_32[disassembler.arg1[i]]
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "EOR":
+                r_32[disassembler.arg3[i]] = r_32[disassembler.arg2[i]] ^ r_32[disassembler.arg1[i]]
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "MOVZ":
+                num = disassembler.arg1[i]
+                num2 = (pow(2, num))
+                r_32[disassembler.arg3[i]] = num2 * disassembler.arg2[i]
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "MOVK":
+                # arg2 or the lsl number needs to be 2^arg3 and then multiplied by the value in arg1 stored in arg3
+                num2 = 1
+                if disassembler.arg1[i] != 0:
+                    num = disassembler.arg1[i]
+                    num2 = (pow(2, num))
+                temp = num2 * disassembler.arg2[i]
+                r_32[disassembler.arg3[i]] = temp + disassembler.arg2[i]
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "STUR":
+                store = r_32[disassembler.arg3[i]]
+                addr = r_32[disassembler.arg1[i]] + disassembler.arg2[i] * 4
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                while addr > data_rows[-1]:
+                    data_rows.append(data_rows[-1] + 32)
+                    dataish.append([0, 0, 0, 0, 0, 0, 0, 0])
+                for j in range(len(data_rows)):
+                    if addr > data_rows[j]:
+                        continue
+                    elif addr < data_rows[j]:
+                        row_index = j - 1
+                        data_index = (addr - data_rows[row_index]) / 4
+                        dataish[row_index][data_index] = store
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "LDUR":
+                addr = r_32[disassembler.arg1[i]] + disassembler.arg2[i] * 4
+                for j in range(len(data_rows)):
+                    if addr > data_rows[j]:
+                        continue
+                    elif addr < data_rows[j]:
+                        row_index = int(j - 1)
+                        data_index = int((addr - data_rows[row_index]) / 4)
+                        r_32[disassembler.arg3[i]] = dataish[row_index][data_index]
+                    elif addr > data_rows[-1]:
+                        print("Address Out of Range, man")
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "CBZ":
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+                if r_32[disassembler.arg3[i]] == 0:
+                    offset = disassembler.arg1[i]
+                    i += offset - 1
+
+            elif disassembler.opcodeStr[i] == "CBNZ":
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+                if r_32[disassembler.arg3[i]] != 0:
+                    offset = disassembler.arg1[i]
+                    i += offset - 1
+            elif disassembler.opcodeStr[i] == "ASR":
+                num = disassembler.arg2[i]
+                num2 = (pow(2, num))
+                r_32[disassembler.arg3[i]] = int(disassembler.arg1[i] / num)
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "LSL":
+                num = disassembler.arg2[i]
+                num2 = (pow(2, num))
+                r_32[disassembler.arg3[i]] = num2 * r_32[disassembler.arg1[i]]
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "LSR":
+                num = disassembler.arg2[i]
+                num2 = (pow(2, num))
+                r_32[disassembler.arg3[i]] = disassembler.arg1[i] / num
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "NOP":
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+            elif disassembler.opcodeStr[i] == "BREAK":
+                outputFile.write("--------------------" + "\n" + "Cycle:" + str(cycle) + "\n" +
+                                 "Pre-Issue Buffer:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n" + "\t" + "Entry 1:" +
+                                 "\t" + "instruction" + "\n\t" + "Entry 2:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 3:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t"
+                                 + "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Post_ALU Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n")
+                outputFile.write("Pre_MEM Queue:" + "\n\t" + "Entry 0:" + "\t" + "instruction" + "\n\t" +
+                                 "Entry 1:" + "\t" + "instruction" + "\n")
+                outputFile.write("Registers:" + "\n")
+                write_regs()
+                outputFile.write(
+                    "Cache" + "\n" + "Set 0: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 1: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 2: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n" +
+                    "Set 3: LRU=" + "value" + "\n\t" + "Entry 0:" + "\n\t" + "Entry 1:" + "\n")
+                outputFile.write("\n" + "data:" + "\n")
+                for row, data in zip(data_rows, dataish):
+                    outputFile.write(str(row) + ": " + str(data) + "\n")
+                break
+            i += 1
+            cycle += 1
+            Memory += 4
+
+if __name__ == '__main__':
+    test = Simulator()
+    test.run()
